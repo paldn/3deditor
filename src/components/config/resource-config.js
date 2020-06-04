@@ -9,7 +9,6 @@ export default
         model_url:'/static/3d-models/glbs/ufo.glb',
         center:{x:0,y:0},
         scale:100,
-        use:[],
         entity:null
     },
     {
@@ -20,7 +19,6 @@ export default
         model_url:'/static/3d-models/glbs/fire_station.glb',
         center:{x:0,y:0},
         scale:9.5,
-        use:[],
         entity:null
     },
     {
@@ -31,7 +29,6 @@ export default
         model_url:'/static/3d-models/glbs/convenience_store.glb',
         center:{x:0,y:0},
         scale:8,
-        use:[],
         entity:null
     },
     {
@@ -42,7 +39,6 @@ export default
         model_url:'/static/3d-models/glbs/courthouse.glb',
         center:{x:0,y:0},
         scale:9,
-        use:[],
         entity:null
     },
     {
@@ -53,7 +49,6 @@ export default
         model_url:'/static/3d-models/glbs/factory.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -64,7 +59,6 @@ export default
         model_url:'/static/3d-models/glbs/home.glb',
         center:{x:0,y:0},
         scale:60,
-        use:[],
         entity:null
     },
     {
@@ -75,7 +69,6 @@ export default
         model_url:'/static/3d-models/glbs/large_hospital.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -86,7 +79,6 @@ export default
         model_url:'/static/3d-models/glbs/multi_story_school.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -97,7 +89,6 @@ export default
         model_url:'/static/3d-models/glbs/office.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -108,7 +99,6 @@ export default
         model_url:'/static/3d-models/glbs/police_station.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -119,7 +109,6 @@ export default
         model_url:'/static/3d-models/glbs/warehouse.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -130,7 +119,6 @@ export default
         model_url:'/static/3d-models/glbs/small_city_building_1.glb',
         center:{x:0,y:0},
         scale:10,
-        use:[],
         entity:null
     },
     {
@@ -141,7 +129,6 @@ export default
         model_url:'/static/3d-models/glbs/small_city_building_2.glb',
         center:{x:0,y:0},
         scale:1350,
-        use:[],
         entity:null
     },
     {
@@ -152,7 +139,6 @@ export default
         model_url:'/static/3d-models/glbs/sports_stadium.glb',
         center:{x:0,y:0},
         scale:5,
-        use:[],
         entity:null
     }
 ]
@@ -166,7 +152,6 @@ export default
         head_url:'/static/3d-models/images/ufo.png',
         model_url:'/static/3d-models/glbs/ufo.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -176,7 +161,6 @@ export default
         head_url:'/static/3d-models/images/capitol.png',
         model_url:'/static/3d-models/glbs/capitol.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -186,7 +170,6 @@ export default
         head_url:'/static/3d-models/images/castle.png',
         model_url:'/static/3d-models/glbs/castle.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -196,7 +179,6 @@ export default
         head_url:'/static/3d-models/images/fire_station.png',
         model_url:'/static/3d-models/glbs/fire_station.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -206,7 +188,6 @@ export default
         head_url:'/static/3d-models/images/convenience_store.png',
         model_url:'/static/3d-models/glbs/convenience_store.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -216,7 +197,6 @@ export default
         head_url:'/static/3d-models/images/courthouse.png',
         model_url:'/static/3d-models/glbs/courthouse.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -226,7 +206,6 @@ export default
         head_url:'/static/3d-models/images/factory.png',
         model_url:'/static/3d-models/glbs/factory.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -236,7 +215,6 @@ export default
         head_url:'/static/3d-models/images/home.png',
         model_url:'/static/3d-models/glbs/home.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -246,7 +224,6 @@ export default
         head_url:'/static/3d-models/images/large_hospital.png',
         model_url:'/static/3d-models/glbs/large_hospital.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -256,7 +233,6 @@ export default
         head_url:'/static/3d-models/images/mid_size_skyscrapers_1.png',
         model_url:'/static/3d-models/glbs/mid_size_skyscrapers_1.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -266,7 +242,6 @@ export default
         head_url:'/static/3d-models/images/mid_size_skyscrapers_2.png',
         model_url:'/static/3d-models/glbs/mid_size_skyscrapers_2.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -276,7 +251,6 @@ export default
         head_url:'/static/3d-models/images/mid_size_skyscrapers_3.png',
         model_url:'/static/3d-models/glbs/mid_size_skyscrapers_3.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -286,7 +260,6 @@ export default
         head_url:'/static/3d-models/images/multi_story_school.png',
         model_url:'/static/3d-models/glbs/multi_story_school.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -296,7 +269,6 @@ export default
         head_url:'/static/3d-models/images/office.png',
         model_url:'/static/3d-models/glbs/office.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -306,7 +278,6 @@ export default
         head_url:'/static/3d-models/images/police_station.png',
         model_url:'/static/3d-models/glbs/police_station.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -316,7 +287,6 @@ export default
         head_url:'/static/3d-models/images/warehouse.png',
         model_url:'/static/3d-models/glbs/warehouse.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -326,7 +296,6 @@ export default
         head_url:'/static/3d-models/images/residential_building.png',
         model_url:'/static/3d-models/glbs/residential_building.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -336,7 +305,6 @@ export default
         head_url:'/static/3d-models/images/residential_house.png',
         model_url:'/static/3d-models/glbs/residential_house.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -346,7 +314,6 @@ export default
         head_url:'/static/3d-models/images/small_city_building_1.png',
         model_url:'/static/3d-models/glbs/small_city_building_1.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -356,7 +323,6 @@ export default
         head_url:'/static/3d-models/images/small_city_building_2.png',
         model_url:'/static/3d-models/glbs/small_city_building_2.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -366,7 +332,6 @@ export default
         head_url:'/static/3d-models/images/sports_stadium.png',
         model_url:'/static/3d-models/glbs/sports_stadium.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -376,7 +341,6 @@ export default
         head_url:'/static/3d-models/images/tall_skyscrapers_1.png',
         model_url:'/static/3d-models/glbs/tall_skyscrapers_1.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -386,7 +350,6 @@ export default
         head_url:'/static/3d-models/images/tall_skyscrapers_2.png',
         model_url:'/static/3d-models/glbs/tall_skyscrapers_2.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -396,7 +359,6 @@ export default
         head_url:'/static/3d-models/images/tall_skyscrapers_3.png',
         model_url:'/static/3d-models/glbs/tall_skyscrapers_3.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -406,7 +368,6 @@ export default
         head_url:'/static/3d-models/images/tall_skyscrapers_4.png',
         model_url:'/static/3d-models/glbs/tall_skyscrapers_4.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     },
     {
@@ -416,7 +377,6 @@ export default
         head_url:'/static/3d-models/images/tall_skyscrapers_5.png',
         model_url:'/static/3d-models/glbs/tall_skyscrapers_5.glb',
         center:{x:0,y:0},
-        use:[],
         entity:null
     }
 ]

@@ -6,8 +6,10 @@
       @mousedown="handleMouseDown($event)"
       @mouseover="handleMouseOver($event)" 
       @mousemove="handleMouseMove($event)"
+      @mouseup="handleMouseUp($event)"
       @keydown="handleKeyDown($event)" 
       @keyup="handleKeyUp($event)"
+      tabindex="1"
     ></div>
     <div class="model-container">
       <div>
@@ -32,6 +34,9 @@
     <i class="help iconfont icon-bangzhu1" @click="dialogVisible=true"></i>
     <div class="progress" v-show="percentage!=100">
       <div><el-progress type="circle" :percentage="percentage"></el-progress></div>
+    </div>
+    <div class="mousepress" v-show="mousepress!=0" :style="'left:'+arrow.x+'px;top:'+arrow.y+'px;'">
+      <el-progress type="circle" :percentage="mousepress" status="success"></el-progress>
     </div>
     <el-dialog
       title="提示"
@@ -66,21 +71,38 @@ export default {
       resourceConfig:ResourceConfig,
       loaded:0,//已加载资源数量
       percentage:0,//加载进度
-      mapArray:[],//地图数据，记录当前地图被占用数据
       side:40,//网格纵横格数
+      gap:25,//网格间距
       camera:null,//相机
       clock:null,
       mixers:[],
       scene:null,//场景
       renderer:null,//渲染器
       plane:null,//面板
+      arrow:{x:0,y:0},
       mouse:null,//鼠标
       raycaster:null,//事件管理
+      gridHelper:null,//网格助手
+      boxHelper:null,//选择框助手
       ufo:null,//飞碟
+      
       timer:null,//计时器
-      select_index:-1,//选择的建筑索引
-      select_mode:null,//选择的模型
-      objects:[],//已添加的对象
+      mousepress:0,
+
+      operatingMode://将要添加或移动的模型
+      {
+        id:0,//建筑ID
+        name:'',//建筑名称
+        rotate:0,//0,1,2,3(旋转的角度)
+        position:{x:0,y:0,z:0},//模型的坐标
+        _config_index:-1,//选择的建筑索引
+        scene:null,//模型实体
+        extra:{},//拓展数据
+        isNew:false//是否是新添加的模型
+      },
+      objects:[],//已添加的模型对象
+      maxId:0,
+      buildingArray:[],
       controls:null//舞台控制器
     }
   },
@@ -108,7 +130,16 @@ export default {
     },
     handleSelect(event,index)
     {
-      this.select_index = index
+      if(this.operatingMode.scene)return false//如果已经在操作，禁止再次选择
+      if(!this.resourceConfig[index+1].entity.scene)
+      {
+        this.$alert("模型尚未准备好，请稍后再试！","操作提示")
+        return false
+      }
+      this.operatingMode.isNew = true
+      this.operatingMode._config_index = index+1
+      this.operatingMode.scene = this.resourceConfig[this.operatingMode._config_index].entity.scene
+      this.$refs.stage.focus()
       event.preventDefault() 
     },
     preload()//预加载模型
@@ -125,33 +156,16 @@ export default {
           //缩放
           gltf.scene.scale.set(_config.scale, _config.scale, _config.scale)
 
-          //处理加载模型为黑色问题
-          /*
-          gltf.scene.traverse(child => {
-            if (child.isMesh) {
-              child.material.emissive = child.material.color
-              child.material.emissiveMap = child.material.map
-            }
-          })
-          */
           _config.entity = gltf
 
           this.loaded ++//已加载的模型+1
           if(_config.id==10000)return
-          let loaded = ResourceConfig[0].entity==null?this.loaded:(this.loaded-1)
-          let _i = parseInt(loaded/4)
-          let _j = loaded%4
-          gltf.scene.translateX(_j*25*10-500)
-          gltf.scene.translateZ(_i*25*10-500)
-          if(_config.id == 10019)
-          {
-            //gltf.scene.position.x = 400
-            //gltf.scene.position.z = 400
-            window.gltf = gltf
-          }
-          
-          
+          gltf.scene.translateY(-100000)
+          gltf.scene.isBuilding = true
+          gltf.scene.name = _config.nameCn
+          this.objects.push(gltf.scene)
           this.scene.add(gltf.scene)
+
         }, xhr => {
           // called while loading is progressing
           console.log(`${( xhr.loaded / xhr.total * 100 )}% loaded`);
@@ -166,7 +180,7 @@ export default {
         load(ResourceConfig[i])
       }
     },
-    addUFO()
+    addUFO()//添加飞碟
     {
       this.ufo = ResourceConfig[0]
       this.ufo.entity.scene.translateX(0)
@@ -214,12 +228,15 @@ export default {
 
       var intersects = this.raycaster.intersectObjects( this.objects );
 
-      if ( intersects.length > 0 && this.select_mode!=null) 
+      if ( intersects.length > 0 && this.operatingMode.scene!=null) 
       {
-
         var intersect = intersects[ 0 ];
-        this.select_mode.position.copy( intersect.point ).add( intersect.face.normal );
-        this.select_mode.position.divideScalar( 25 ).floor().multiplyScalar( 25 ).addScalar( 25 );
+        this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
+        this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
+        if(this.boxHelper.visible)
+        {
+          this.boxHelper.setFromObject( this.operatingMode.scene );
+        }
       }
 			this.render();
     },
@@ -238,14 +255,11 @@ export default {
 
       var intersects = this.raycaster.intersectObjects( this.objects );
 
-      if ( intersects.length > 0 && this.select_mode==null && this.select_index != -1) 
+      if ( intersects.length > 0&&this.operatingMode._config_index!=-1) 
       {
         var intersect = intersects[ 0 ];
-        this.select_mode = this.resourceConfig[this.select_index+1].entity.scene;
-        this.resourceConfig[this.select_index+1].entity.scene = this.select_mode.clone();
-        this.select_mode.position.copy( intersect.point ).add( intersect.face.normal );
-        this.select_mode.position.divideScalar( 25 ).floor().multiplyScalar( 25 ).addScalar( 25 );
-        this.scene.add(this.select_mode);
+        this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
+        this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
       }
 			this.render();
     },
@@ -261,47 +275,172 @@ export default {
 
       this.mouse.set( ( (event.clientX-offsetLeft) / width ) * 2 - 1, - ( (event.clientY-offsetTop) / height ) * 2 + 1 );
 
-      this.raycaster.setFromCamera( this.mouse, this.camera );
-
-      var intersects = this.raycaster.intersectObjects( this.objects );
-
-      if ( intersects.length > 0 ) {
-
+      if(this.operatingMode.isNew)
+      {
+        this.raycaster.setFromCamera( this.mouse, this.camera );
+        var intersects = this.raycaster.intersectObjects( this.objects );
+        if(intersects.length==0)return false
         var intersect = intersects[ 0 ];
+        this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
+        this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
+        
+        this.operatingMode.id = this.maxId
+        this.operatingMode.name = ''
+        this.operatingMode.position = {...intersect.point}
+        this.operatingMode.isNew = false
+        this.buildingArray.push(this.operatingMode)
+        this.resourceConfig[this.operatingMode._config_index].entity.scene = this.operatingMode.scene.clone()
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.position.z = -100000
 
+        /* 重置旋转方向 */
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.x = 0;
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.y = 0;
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.z = 0;
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._x = 0;
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._y = 0;
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._z = 0;
 
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.isBuilding = true
+        this.scene.add(this.resourceConfig[this.operatingMode._config_index].entity.scene)
+        this.objects.push(this.resourceConfig[this.operatingMode._config_index].entity.scene)
+        this.operatingMode = 
+        {
+          id:0,
+          name:'',
+          rotate:0,
+          position:{x:0,y:0,z:0},
+          _config_index:-1,
+          scene:null,
+          extra:{},
+          isNew:false
+        }
+        this.maxId ++
 
         this.render();
+      }
+      else
+      {
+        if(this.boxHelper.visible)
+        {
+          this.boxHelper.visible = false
+          this.operatingMode = 
+          {
+            id:0,
+            name:'',
+            rotate:0,
+            position:{x:0,y:0,z:0},
+            _config_index:-1,
+            scene:null,
+            extra:{},
+            isNew:false
+          }
+          return false
+        }
+        this.arrow.x = event.clientX
+        this.arrow.y = event.clientY
+        this.timer = setInterval(()=>
+        {
+          this.mousepress += 20
+          if(this.mousepress == 100)
+          {
+            this.mousepress = 0
+            clearInterval(this.timer)
+            this.timer = null
+
+            this.raycaster.setFromCamera( this.mouse, this.camera );
+            var intersects = this.raycaster.intersectObjects( this.objects ,true);
+            if(intersects.length==0)return false
+
+            let findBuilding = obj3d=>
+            {
+              if(obj3d.isBuilding)return obj3d
+              if(obj3d.parent)
+              {
+                return findBuilding(obj3d.parent)
+              }
+            }
+
+            let building = null
+
+            for(let i=0;i<intersects.length;i++)
+            {
+              building = findBuilding(intersects[i].object)
+              if(building)break;
+            }
+
+            let buildingDetail = null
+            for(let i=0;i<this.buildingArray.length;i++)
+            {
+              if(this.buildingArray[i].scene === building)
+              {
+                buildingDetail = this.buildingArray[i]
+                break
+              }
+            }
+            if(buildingDetail)
+            {
+              this.operatingMode = buildingDetail
+              this.boxHelper.setFromObject( this.operatingMode.scene );
+              this.boxHelper.material.color.set( 0x00cc00 );
+              this.boxHelper.visible = true
+            }
+          }
+
+        },100)
+      }
+      
+    },
+    handleMouseUp(event)
+    {
+      if(this.timer)
+      {
+        clearInterval(this.timer)
+        this.timer = null
+        this.mousepress = 0
       }
     },
     handleKeyDown( event ) 
     {
-
+      //r 82 t 84 del 46
       switch ( event.keyCode ) {
-
+        case 82:
+          if(this.operatingMode._config_index!=-1)
+          {
+            this.operatingMode.rotate ++
+            this.operatingMode.rotate = this.operatingMode.rotate%4
+            this.operatingMode.scene.rotateY(Math.PI/2)
+            if(this.boxHelper.visible)
+            {
+              this.boxHelper.setFromObject( this.operatingMode.scene );
+            }
+          }
+          break;
+        case 84:
+          if(this.operatingMode._config_index!=-1)
+          {
+            this.operatingMode.rotate --
+            this.operatingMode.rotate = this.operatingMode.rotate<0?(this.operatingMode.rotate+4):this.operatingMode.rotate
+            this.operatingMode.scene.rotateY(-1*Math.PI/2)
+            if(this.boxHelper.visible)
+            {
+              this.boxHelper.setFromObject( this.operatingMode.scene );
+            }
+            
+          }
+          break;
+        case 46:
+          break;
       }
 
     },
     handleKeyUp( event ) 
     {
 
-      switch ( event.keyCode ) {
-
-      }
+      
 
     },
     init()
     {
-      for(let i=0;i<this.side;i++)
-      {
-        let _arr = []
-        for(let j=0;j<this.side;j++)
-        {
-          _arr.push(0)
-        }
-        this.mapArray.push(_arr)
-      }
-
       this.clock = new THREE.Clock();
 
 
@@ -317,9 +456,14 @@ export default {
 
       // grid
 
-      var gridHelper = new THREE.GridHelper( 1000, this.side );
-      this.scene.add( gridHelper );
+      this.gridHelper = new THREE.GridHelper( 1000, this.side );
+      this.scene.add( this.gridHelper );
 
+      // box
+      this.boxHelper = new THREE.BoxHelper();
+      this.boxHelper.material.color.set( 0x00cc00 );
+      this.boxHelper.visible = false
+      this.scene.add(this.boxHelper)
       //
 
       this.raycaster = new THREE.Raycaster();
@@ -503,6 +647,18 @@ export default {
       }
     }
   }
-  
+}
+.mousepress
+{
+  position:absolute;
+  width:126px;
+  height:126px;
+  margin:-63px 0 0 -63px;
+  background:none;
+  pointer-events: none;
+  > div
+  {
+    background:none;
+  }
 }
 </style>
