@@ -14,10 +14,10 @@
     <div class="model-container">
       <div>
         <div>
-          <el-button type="primary" icon="el-icon-caret-left" @mousedown="handlePrev()"></el-button>
+          <el-button type="primary" icon="el-icon-caret-left" @click="handlePrev"></el-button>
         </div>
-        <div>
-          <div :style="'width:'+resourceConfig.slice(1).length*240+'px;'+'left:'+offsetleft+'px;'" >
+        <div ref="mbox">
+          <div :style="'width:'+resourceConfig.slice(1).length*240+'px;'+'left:'+(-1*(page-1)*100)+'%;'" >
             <div 
               v-for="(item,index) in resourceConfig.slice(1)" 
               :key="item.id" 
@@ -27,7 +27,7 @@
           </div>
         </div>
         <div>
-          <el-button type="primary" icon="el-icon-caret-right" @mousedown="handleNext()"></el-button>
+          <el-button type="primary" icon="el-icon-caret-right" @click="handleNext"></el-button>
         </div>
       </div>
     </div>
@@ -103,7 +103,8 @@ export default {
       objects:[],//已添加的模型对象
       maxId:0,
       buildingArray:[],
-      controls:null//舞台控制器
+      controls:null,//舞台控制器
+      page:1//模型的页码
     }
   },
   watch:
@@ -122,11 +123,14 @@ export default {
   {
     handlePrev()
     {
-      this.offsetleft += 5
+      if(this.page > 1)
+      {
+        this.page --
+      }
     },
     handleNext()
     {
-      this.offsetleft -= 5
+      this.page ++
     },
     handleSelect(event,index)
     {
@@ -160,7 +164,7 @@ export default {
 
           this.loaded ++//已加载的模型+1
           if(_config.id==10000)return
-          gltf.scene.translateY(-100000)
+          gltf.scene.visible = false
           gltf.scene.isBuilding = true
           gltf.scene.name = _config.nameCn
           this.objects.push(gltf.scene)
@@ -233,6 +237,10 @@ export default {
         var intersect = intersects[ 0 ];
         this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
         this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
+        if(!this.operatingMode.scene.visible)
+        {
+          this.operatingMode.scene.visible = true
+        }
         if(this.boxHelper.visible)
         {
           this.boxHelper.setFromObject( this.operatingMode.scene );
@@ -260,6 +268,10 @@ export default {
         var intersect = intersects[ 0 ];
         this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
         this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
+        if(!this.operatingMode.scene.visible)
+        {
+          this.operatingMode.scene.visible = true
+        }
       }
 			this.render();
     },
@@ -290,7 +302,7 @@ export default {
         this.operatingMode.isNew = false
         this.buildingArray.push(this.operatingMode)
         this.resourceConfig[this.operatingMode._config_index].entity.scene = this.operatingMode.scene.clone()
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.position.z = -100000
+        this.resourceConfig[this.operatingMode._config_index].entity.scene.visible = false
 
         /* 重置旋转方向 */
         this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.x = 0;
@@ -580,23 +592,22 @@ export default {
   position: absolute;
   background:#f8f8f8;
   box-shadow: 0 0 3px #ccc;
-  position: absolute;
+  position: fixed;
   left:0;
   bottom:0;
-
+  pointer-events:auto;
   > div
   {
     position:relative;
     height:240px;
-    padding:0 40px;
+
+    width:100%;
+    > div{float:left;}
 
     > div:nth-of-type(1)
     {
       width:40px;
       height:120px;
-      position:absolute;
-      left:0;
-      top:120px;
       > button
       {
         width:100%;
@@ -611,7 +622,7 @@ export default {
     }
     > div:nth-of-type(2)
     {
-      width:100%;
+      width:calc(100% - 80px);
       height:240px;
       margin-top:-120px;
       overflow-x: hidden;
@@ -632,9 +643,6 @@ export default {
     {
       width:40px;
       height:120px;
-      position:absolute;
-      right:0;
-      top:120px;
       > button
       {
         width:100%;
