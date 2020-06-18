@@ -21,6 +21,7 @@
             <div 
               v-for="(item,index) in resourceConfig.slice(1)" 
               :key="item.id" 
+              :title="item.nameCn"
               @mousedown="handleSelect($event,index)">
               <img  :src="item.head_url" width="240"/>
             </div>
@@ -36,7 +37,7 @@
       <div><el-progress type="circle" :percentage="percentage"></el-progress></div>
     </div>
     <div class="mousepress" v-show="mousepress!=0" :style="'left:'+arrow.x+'px;top:'+arrow.y+'px;'">
-      <el-progress type="circle" :percentage="mousepress" status="success"></el-progress>
+      <el-progress type="circle" ref="loadding" :percentage="mousepress" status="success"></el-progress>
     </div>
     <el-dialog
       title="提示"
@@ -71,13 +72,16 @@ export default {
       resourceConfig:ResourceConfig,
       loaded:0,//已加载资源数量
       percentage:0,//加载进度
-      side:40,//网格纵横格数
-      gap:25,//网格间距
+      side:100,//网格纵横格数
+      gap:10,//网格间距
       camera:null,//相机
       clock:null,
       mixers:[],
       scene:null,//场景
       renderer:null,//渲染器
+      ambientLight:null,
+      directionalLight:null,
+      intersect:null,
       plane:null,//面板
       arrow:{x:0,y:0},
       mouse:null,//鼠标
@@ -85,7 +89,7 @@ export default {
       gridHelper:null,//网格助手
       boxHelper:null,//选择框助手
       ufo:null,//飞碟
-      
+      tickInterval:0,
       timer:null,//计时器
       mousepress:0,
 
@@ -146,6 +150,33 @@ export default {
       this.$refs.stage.focus()
       event.preventDefault() 
     },
+    freeModelMem(model)//释放模型内存
+    {
+      let freeGroup = group=>
+      {
+        //console.log(group);
+        if (!group) return;
+        // 删除掉所有的模型组内的mesh
+        group.traverse(function (item) {
+            if (item instanceof THREE.Mesh) {
+                item.geometry.dispose(); // 删除几何体
+                item.material.dispose(); // 删除材质
+            }
+        })
+      }
+      if(model instanceof THREE.Scene)
+      {
+        let children = model.children
+        for(let i=0;i<children.length;i++)
+        {
+          freeGroup(children[i])
+        }
+      }
+      else
+      {
+        freeGroup(model)
+      }
+    },
     preload()//预加载模型
     {
       let load = _config=>
@@ -163,10 +194,11 @@ export default {
           _config.entity = gltf
 
           this.loaded ++//已加载的模型+1
-          if(_config.id==10000)return
+          if(_config.id == 10000)return
           gltf.scene.visible = false
           gltf.scene.isBuilding = true
           gltf.scene.name = _config.nameCn
+          
           this.objects.push(gltf.scene)
           this.scene.add(gltf.scene)
 
@@ -200,6 +232,10 @@ export default {
       var animate = ()=>
       {
         requestAnimationFrame(animate);
+        this.tickInterval ++
+        this.tickInterval = this.tickInterval%5
+
+        if(this.tickInterval !=0)return
         var delta = this.clock.getDelta();
         for ( var i = 0; i < this.ufo.mixers.length; i ++ ) { // 重复播放动画
             this.ufo.mixers[ i ].update( delta );
@@ -287,81 +323,41 @@ export default {
 
       this.mouse.set( ( (event.clientX-offsetLeft) / width ) * 2 - 1, - ( (event.clientY-offsetTop) / height ) * 2 + 1 );
 
-      if(this.operatingMode.isNew)
+      this.raycaster.setFromCamera( this.mouse, this.camera );
+
+      //判断鼠标按下的位置是不是界限之内并且获取3D世界的坐标位置
+      var intersects = this.raycaster.intersectObjects( [this.plane]);
+      if(intersects.length==0)return//如果按下的位置出界了直接返回
+
+      //编辑和新增this.operatingMode._config_index都不会为-1,这就说明正在延时选中建筑
+      if(this.operatingMode._config_index == -1)
       {
-        this.raycaster.setFromCamera( this.mouse, this.camera );
-        var intersects = this.raycaster.intersectObjects( this.objects );
-        if(intersects.length==0)return false
-        var intersect = intersects[ 0 ];
-        this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
-        this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
-        
-        this.operatingMode.id = this.maxId
-        this.operatingMode.name = ''
-        this.operatingMode.position = {...intersect.point}
-        this.operatingMode.isNew = false
-        this.buildingArray.push(this.operatingMode)
-        this.resourceConfig[this.operatingMode._config_index].entity.scene = this.operatingMode.scene.clone()
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.visible = false
-
-        /* 重置旋转方向 */
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.x = 0;
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.y = 0;
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.z = 0;
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._x = 0;
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._y = 0;
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._z = 0;
-
-        this.resourceConfig[this.operatingMode._config_index].entity.scene.isBuilding = true
-        this.scene.add(this.resourceConfig[this.operatingMode._config_index].entity.scene)
-        this.objects.push(this.resourceConfig[this.operatingMode._config_index].entity.scene)
-        this.operatingMode = 
+        //查找是否有建筑被选中
+        let objects = []
+        for(let i=0;i<this.objects.length;i++)
         {
-          id:0,
-          name:'',
-          rotate:0,
-          position:{x:0,y:0,z:0},
-          _config_index:-1,
-          scene:null,
-          extra:{},
-          isNew:false
+          //移除隐藏建筑和非显示状态的建筑
+          if(!this.objects[i].isBuilding||!this.objects[i].visible)continue
+          objects.push(this.objects[i])
         }
-        this.maxId ++
+        intersects = this.raycaster.intersectObjects( objects , true);
 
-        this.render();
-      }
-      else
-      {
-        if(this.boxHelper.visible)
-        {
-          this.boxHelper.visible = false
-          this.operatingMode = 
-          {
-            id:0,
-            name:'',
-            rotate:0,
-            position:{x:0,y:0,z:0},
-            _config_index:-1,
-            scene:null,
-            extra:{},
-            isNew:false
-          }
-          return false
-        }
+        //按下的位置没有任何建筑
+        if(intersects.length==0)return
+
+        this.intersect = intersects[0]
+
         this.arrow.x = event.clientX
         this.arrow.y = event.clientY
         this.timer = setInterval(()=>
         {
           this.mousepress += 20
+          this.$refs.loadding.$forceUpdate()
           if(this.mousepress == 100)
           {
             this.mousepress = 0
             clearInterval(this.timer)
             this.timer = null
-
-            this.raycaster.setFromCamera( this.mouse, this.camera );
-            var intersects = this.raycaster.intersectObjects( this.objects ,true);
-            if(intersects.length==0)return false
 
             let findBuilding = obj3d=>
             {
@@ -371,15 +367,7 @@ export default {
                 return findBuilding(obj3d.parent)
               }
             }
-
-            let building = null
-
-            for(let i=0;i<intersects.length;i++)
-            {
-              building = findBuilding(intersects[i].object)
-              if(building)break;
-            }
-
+            let building = findBuilding(this.intersect.object)
             let buildingDetail = null
             for(let i=0;i<this.buildingArray.length;i++)
             {
@@ -396,11 +384,72 @@ export default {
               this.boxHelper.material.color.set( 0x00cc00 );
               this.boxHelper.visible = true
             }
+            this.intersect = null;
           }
-
         },100)
       }
-      
+      else
+      {
+        if(this.operatingMode.isNew)//新增
+        {
+          var intersect = intersects[0]
+          this.operatingMode.scene.position.copy( intersect.point ).add( intersect.face.normal );
+          this.operatingMode.scene.position.divideScalar( this.gap ).floor().multiplyScalar( this.gap ).addScalar( this.gap );
+          
+          this.operatingMode.id = this.maxId
+          this.operatingMode.name = ''
+          this.operatingMode.position = {...intersect.point}
+          this.operatingMode.isNew = false
+          this.buildingArray.push(this.operatingMode)
+          this.resourceConfig[this.operatingMode._config_index].entity.scene = this.operatingMode.scene.clone()
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.visible = false
+
+          /* 重置旋转方向 */
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.x = 0;
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.y = 0;
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation.z = 0;
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._x = 0;
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._y = 0;
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.rotation._z = 0;
+
+          this.resourceConfig[this.operatingMode._config_index].entity.scene.isBuilding = true
+          this.scene.add(this.resourceConfig[this.operatingMode._config_index].entity.scene)
+          this.objects.push(this.resourceConfig[this.operatingMode._config_index].entity.scene)
+          this.operatingMode = 
+          {
+            id:0,
+            name:'',
+            rotate:0,
+            position:{x:0,y:0,z:0},
+            _config_index:-1,
+            scene:null,
+            extra:{},
+            isNew:false
+          }
+          this.maxId ++
+          this.render();
+        }
+        else//编辑
+        {
+          if(this.boxHelper.visible)
+          {
+            this.boxHelper.visible = false
+            this.operatingMode = 
+            {
+              id:0,
+              name:'',
+              rotate:0,
+              position:{x:0,y:0,z:0},
+              _config_index:-1,
+              scene:null,
+              extra:{},
+              isNew:false
+            }
+            this.intersect = null;
+            this.render();
+          }
+        }
+      }
     },
     handleMouseUp(event)
     {
@@ -409,6 +458,7 @@ export default {
         clearInterval(this.timer)
         this.timer = null
         this.mousepress = 0
+        this.intersect = null
       }
     },
     handleKeyDown( event ) 
@@ -441,6 +491,39 @@ export default {
           }
           break;
         case 46:
+          if(this.operatingMode._config_index!=-1)
+          {
+            let flag = false
+            for(let i=0;i<this.buildingArray.length;i++)
+            {
+              if(this.operatingMode.scene === this.buildingArray[i].scene)
+              {
+                this.buildingArray.splice(i,1)
+                flag = true
+                break
+              }
+            }
+            if(flag)//如果这个建筑模型已在建筑列表中就释放
+            {
+              this.objects.splice(this.objects.indexOf(this.operatingMode.scene),1)
+              this.freeModelMem(this.operatingMode.scene)
+              this.scene.remove(this.operatingMode.scene)
+              this.boxHelper.visible = false
+
+              this.operatingMode = 
+              {
+                id:0,
+                name:'',
+                rotate:0,
+                position:{x:0,y:0,z:0},
+                _config_index:-1,
+                scene:null,
+                extra:{},
+                isNew:false
+              }
+            }
+            this.render()
+          }
           break;
       }
 
@@ -491,12 +574,12 @@ export default {
 
       // lights
 
-      var ambientLight = new THREE.AmbientLight( 0x606060 );
-      this.scene.add( ambientLight );
+      this.ambientLight = new THREE.AmbientLight( 0x606060 );
+      this.scene.add( this.ambientLight );
 
-      var directionalLight = new THREE.DirectionalLight( 0xffffff );
-      directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
-      this.scene.add( directionalLight );
+      this.directionalLight = new THREE.DirectionalLight( 0xffffff );
+      this.directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
+      this.scene.add( this.directionalLight );
 
       this.renderer = new THREE.WebGLRenderer( { antialias: true } );
       this.renderer.setPixelRatio( window.devicePixelRatio );
@@ -529,6 +612,23 @@ export default {
   beforeDestroy()
   {
     window.removeEventListener('resize',this.handleWindowResize.bind(this),false)
+    
+    for(let i=0;i<this.objects.length;i++)
+    {
+      if(this.objects[i] instanceof THREE.Scene||this.objects[i] instanceof THREE.Group)
+      {
+        this.freeModelMem(this.objects[i])
+      }
+      else if(this.objects[i] instanceof THREE.Mesh)
+      {
+        this.objects[i].geometry.dispose()
+      }
+    }
+    this.controls.dispose()
+    this.renderer.dispose()
+    this.scene.dispose()
+    this.renderer.forceContextLoss();
+    this.renderer = null;
   }
 }
 </script>
@@ -539,6 +639,21 @@ export default {
 {
   .el-dialog__header{border-bottom:1px solid #ccc;}
 }
+.mousepress
+{
+  position:absolute;
+  width:64px;
+  height:64px;
+  margin:-32px 0 0 -32px;
+  background:none;
+  pointer-events: none;
+  > div
+  {
+    background:none;
+  }
+  .el-progress-circle{width:64px !important;height:64px !important;}
+  .el-progress__text{display:none !important;}
+}
 </style>
 <style lang="scss" scoped>
 .el-dialog__footer{border-top:1px solid #ccc;}
@@ -548,6 +663,7 @@ export default {
   width:100%;
   height:100%;
   position:relative;
+  cursor:url(/static/cursor/hand.png),default !important;
 }
 .help
 {
@@ -656,17 +772,5 @@ export default {
     }
   }
 }
-.mousepress
-{
-  position:absolute;
-  width:126px;
-  height:126px;
-  margin:-63px 0 0 -63px;
-  background:none;
-  pointer-events: none;
-  > div
-  {
-    background:none;
-  }
-}
+
 </style>
