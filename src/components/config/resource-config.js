@@ -330,7 +330,7 @@ export default
         head_url:'/static/3d-models/images/residential_building.png',
         model_url:'/static/3d-models/glbs/residential_building.glb',
         center:{x:0,y:0},
-        scale:10,
+        scale:1000,
         entity:null,
         box:null
     },
@@ -341,7 +341,7 @@ export default
         head_url:'/static/3d-models/images/residential_house.png',
         model_url:'/static/3d-models/glbs/residential_house.glb',
         center:{x:0,y:0},
-        scale:10,
+        scale:1000,
         entity:null,
         box:null
     },
